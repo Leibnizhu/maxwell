@@ -16,14 +16,14 @@ public class HiveConnection {
     HiveConnection(Properties prop){
         HikariConfig config = new HikariConfig();
 		config.setDriverClassName(prop.getProperty("driver", "org.apache.hive.jdbc.HiveDriver"));
-        config.setJdbcUrl(prop.getProperty("jdbcurl", "jdbc:mysql://localhost:3306/"));
+        config.setJdbcUrl(prop.getProperty("jdbcurl", "jdbc:mysql://localhost:10000/"));
         config.setUsername(prop.getProperty("user", ""));
         config.setPassword(prop.getProperty("password", ""));
         config.addDataSourceProperty("cachePrepStmts", "true");
         config.addDataSourceProperty("prepStmtCacheSize", "250");
         config.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
         this.dataSource = new HikariDataSource(config);
-        log.info("HikariCP Hive连接池初始化成功！");
+        log.info("HikariCP Hive连接池初始化成功!");
     }
 
     Connection getConnection(){
@@ -31,7 +31,7 @@ public class HiveConnection {
         try {
             conn = dataSource.getConnection();
         } catch (SQLException e) {
-            log.error("从HikariCP连接池获取Hive连接时抛出异常", e);
+            log.error("从HikariCP连接池获取Hive连接时抛出异常:{}", e.getMessage());
         }
         return conn;
     }

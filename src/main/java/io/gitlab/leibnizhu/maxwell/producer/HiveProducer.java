@@ -7,9 +7,6 @@ import com.zendesk.maxwell.util.StoppableTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ExecutorService;
@@ -38,7 +35,7 @@ public class HiveProducer extends AbstractProducer implements StoppableTask {
 		String type = rowMap.getRowType();
 		String mysqlDatabase = rowMap.getDatabase();
 		String mysqlTable = rowMap.getTable();
-		log.info("接收到MySQL变更通知,类型={},数据库={},表={}", type, mysqlDatabase, mysqlTable);
+		log.debug("接收到MySQL变更通知,类型={},数据库={},表={}", type, mysqlDatabase, mysqlTable);
 		if (!type.equals("insert") && !type.equals("update")) {
 			log.debug("不支持的数据库操作:{}", type);
 			return;
@@ -50,47 +47,18 @@ public class HiveProducer extends AbstractProducer implements StoppableTask {
 			return;
 		}
 		/*
-		 *        | APPEND | MODIFY |
-		 * insert |  支持  |   支持  |
-		 * update | 不支持 |   支持  |
+		 *        |    APPEND   | MODIFY  |
+		 * -------|-------------|---------|
+		 * insert |   support   | support |
+		 * update | not-support | support |
 		 */
 		if (hiveTable.mode == null || (hiveTable.mode.equals(HiveMode.APPEND) && type.equals("update"))) {
 			log.debug("Hive表{}在规则中不支持更新操作, 忽略MySQL相应表{}的update操作.", hiveTableFullName, mysqlDatabase + "." + mysqlTable);
 			return;
 		}
-		String hiveHQL = makeHQL(hiveTable, rowMap.getData(), rowMap.getOldData(), type);
+		String hiveHQL = makeHQL(hiveTable, rowMap.getData(), type);
 		//放入线程池 等待被执行, 不要阻塞进程
-		threadPool.execute(() -> {
-			if (hiveHQL == null || hiveHQL.trim().length() == 0) {
-				return;
-			}
-			Connection conn = null;
-			Statement stat = null;
-			try {
-				log.info("准备执行HQL: " + hiveHQL);
-				conn = connPool.getConnection();
-				stat = conn.createStatement();
-				int affected = stat.executeUpdate(hiveHQL);
-				log.info("执行HQL完毕, 影响了{}行记录", affected);
-			} catch (SQLException e) {
-				log.error("执行Hive HQL语句时抛出异常:{}", e.getMessage());
-			} finally {
-				if (stat != null) {
-					try {
-						stat.close();
-					} catch (SQLException e) {
-						log.error("关闭Hive Statement时抛出异常", e);
-					}
-				}
-				if (conn != null) {
-					try {
-						conn.close();
-					} catch (SQLException e) {
-						log.error("关闭Hive连接时抛出异常", e);
-					}
-				}
-			}
-		});
+		threadPool.execute(new HQLExecuteThread(connPool, hiveHQL));
 
 	}
 
@@ -106,17 +74,15 @@ public class HiveProducer extends AbstractProducer implements StoppableTask {
 			hiveDatabase = hiveTableResult.database;
 			mode = hiveTableResult.mode;
 			primaryKey = hiveTableResult.primaryKey;
-		} else if (config.strict().equals(Strict.TABLE)) {
+		} else if (!config.strict().equals(Strict.TABLE) && config.containDatabase(mysqlDatabase)) {
 			//2. 只匹配表映射, 但又没有对应表映射, 则不继续匹配
-		} else if (config.containDatabase(mysqlDatabase)) {
 			//3. 库名匹配上了
 			HiveDatabase hiveDatabaseResult = config.hiveDatabase(mysqlDatabase);
 			hiveDatabase = hiveDatabaseResult.database;
 			hiveTable = mysqlTable;
 			mode = hiveDatabaseResult.mode;
-		} else if (config.strict().equals(Strict.DATABASE)) {
+		} else if (config.strict().equals(Strict.NONE)) {
 			//4. 只匹配表和库, 此时表和库都没匹配上, 则不继续匹配
-		} else {
 			//5. NONE最宽松的匹配, 匹配到default库的同名表
 			hiveDatabase = "default.";
 			hiveTable = mysqlTable;
@@ -125,7 +91,7 @@ public class HiveProducer extends AbstractProducer implements StoppableTask {
 		return new HiveTable(hiveDatabase, hiveTable, mode, primaryKey);
 	}
 
-	private String makeHQL(HiveTable hiveTable, Map<String, Object> data, Map<String, Object> oldData, String type) {
+	private String makeHQL(HiveTable hiveTable, Map<String, Object> data, String type) {
 		if (type.equals("insert")) {
 			return makeInsertHQL(hiveTable.fullTable, data);
 		} else if (type.equals("update")) {
