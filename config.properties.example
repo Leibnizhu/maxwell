@@ -325,3 +325,11 @@ sqs_queue_uri=aws_sqs_queue_uri
 
 # output filename when using the "file" producer
 #output_file=/path/to/file
+
+custom_producer.factory=io.gitlab.leibnizhu.maxwell.producer.HiveProducerFactory
+custom_producer.strict=database
+custom_producer.rule=test.user->default.testuser,M,id;AAaa.Bbb->Ccc.Ddd,A;AAaa2.Bbb2->Ccc2.Ddd2,M;AAaa2->Ccc2,M;AAaa3.Bbb3->Ccc3.Ddd3;AAaa4.Bbb4->Ccc4.Ddd4,XX;AAaa3->Ccc3;AAaa4.->Ccc4.
+custom_producer.jdbcurl=jdbc:hive2://devgs01:10000/default
+custom_producer.driver=com.cloudera.hive.jdbc4.HS2Driver
+custom_producer.user=
+custom_producer.password=
