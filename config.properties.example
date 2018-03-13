@@ -328,8 +328,13 @@ sqs_queue_uri=aws_sqs_queue_uri
 
 custom_producer.factory=io.gitlab.leibnizhu.maxwell.producer.HiveProducerFactory
 custom_producer.strict=database
-custom_producer.rule=test.user->default.testuser,M,id;AAaa.Bbb->Ccc.Ddd,A;AAaa2.Bbb2->Ccc2.Ddd2,M;AAaa2->Ccc2,M;AAaa3.Bbb3->Ccc3.Ddd3;AAaa4.Bbb4->Ccc4.Ddd4,XX;AAaa3->Ccc3;AAaa4.->Ccc4.
-custom_producer.jdbcurl=jdbc:hive2://devgs01:10000/default
-custom_producer.driver=com.cloudera.hive.jdbc4.HS2Driver
+custom_producer.rule=test.user->default.testuser,M,id
+custom_producer.jdbcurl=jdbc:hive2://cdh1:10000/default;principal=hive/_HOST@TURINGDI.COM
+#custom_producer.driver=com.cloudera.hive.jdbc4.HS2Driver
+custom_producer.driver=org.apache.hive.jdbc.HiveDriver
 custom_producer.user=
 custom_producer.password=
+custom_producer.kerberos.on=true
+custom_producer.kerberos.krb5conf=/Users/leibnizhu/krb5.conf
+custom_producer.kerberos.user=hive
+custom_producer.kerberos.keytab=/Users/leibnizhu/hive.keytab

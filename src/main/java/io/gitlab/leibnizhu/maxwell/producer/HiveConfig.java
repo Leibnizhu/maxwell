@@ -118,7 +118,7 @@ public class HiveConfig {
 
 		@Override
 		public String toString() {
-			return "HiveTable{" + "database='" + database + "', table='" + table + "', key='" + primaryKey + "', mode=" + mode + '}';
+			return "HiveTable{" + "table='" + database + "." + table + "', key='" + primaryKey + "', mode=" + mode + '}';
 		}
 	}
 

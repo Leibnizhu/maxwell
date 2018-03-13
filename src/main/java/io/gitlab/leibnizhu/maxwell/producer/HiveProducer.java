@@ -17,7 +17,7 @@ import static io.gitlab.leibnizhu.maxwell.producer.HiveConfig.*;
 public class HiveProducer extends AbstractProducer implements StoppableTask {
 	private Logger log = LoggerFactory.getLogger(getClass());
 	private HiveConfig config;
-	private HiveConnection connPool;
+	private HiveConnectionPool connPool;
 	private ExecutorService threadPool;
 
 	HiveProducer(MaxwellContext context) {
@@ -25,7 +25,7 @@ public class HiveProducer extends AbstractProducer implements StoppableTask {
 		log.info("===============HiveProducer开始初始化==============");
 		Properties prop = context.getConfig().customProducerProperties;
 		this.config = new HiveConfig(prop);
-		this.connPool = new HiveConnection(prop);
+		this.connPool = new HiveConnectionPool(prop);
 		this.threadPool = Executors.newFixedThreadPool(10);
 		log.info("===============HiveProducer初始化完毕==============");
 	}

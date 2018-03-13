@@ -10,10 +10,10 @@ import java.sql.Statement;
 public class HQLExecuteThread implements Runnable{
 	private Logger log = LoggerFactory.getLogger(getClass());
 
-	private HiveConnection connPool;
+	private HiveConnectionPool connPool;
 	private String hiveHQL;
 
-	HQLExecuteThread(HiveConnection connPool, String hiveHQL) {
+	HQLExecuteThread(HiveConnectionPool connPool, String hiveHQL) {
 		this.connPool = connPool;
 		this.hiveHQL = hiveHQL;
 	}
