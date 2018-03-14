@@ -1,7 +1,5 @@
 package io.gitlab.leibnizhu.maxwell.producer;
 
-import com.zaxxer.hikari.HikariConfig;
-import com.zaxxer.hikari.HikariDataSource;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.junit.Before;
@@ -9,8 +7,6 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.beans.PropertyVetoException;
-import java.io.IOException;
 import java.sql.*;
 import java.util.Properties;
 
@@ -25,6 +21,7 @@ public class HiveJdbcTest {
 		prop.setProperty("strict", "database");
 		prop.setProperty("rule", "test.user->default.testuser,M,id;AAaa.Bbb->Ccc.Ddd,A;AAaa2.Bbb2->Ccc2.Ddd2,M;AAaa2->Ccc2,M;AAaa3.Bbb3->Ccc3.Ddd3;AAaa4.Bbb4->Ccc4.Ddd4,XX;AAaa3->Ccc3;AAaa4.->Ccc4.");
 		prop.setProperty("jdbcurl", "jdbc:hive2://cdh1:10000/default;principal=hive/cdh1@TURINGDI.COM");
+		prop.setProperty("driver", "com.cloudera.hive.jdbc4.HS2Driver");
 		prop.setProperty("kerberos.on", "true");
 		prop.setProperty("kerberos.krb5conf", "/Users/leibnizhu/krb5.conf");
 		prop.setProperty("kerberos.user", "hive");
@@ -45,12 +42,27 @@ public class HiveJdbcTest {
 		} catch (SQLException e) {
 			log.error("执行Hive HQL语句时抛出异常:{}", e.getMessage());
 		} finally {
-			try {
-				stat.close();
-				conn.close();
-			} catch (SQLException e) {
-				e.printStackTrace();
+			closeAll(stat, conn);
+		}
+	}
+
+	@Test
+	public void kerberosSelectTest() {
+		String hiveHQL = "select * from hivetest";
+		HiveConnectionPool pool = new HiveConnectionPool(prop);
+		Connection conn = null;
+		PreparedStatement stat = null;
+		try {
+			conn = pool.getConnection();
+			stat = conn.prepareStatement(hiveHQL);
+			ResultSet rs = stat.executeQuery();
+			while (rs.next()) {
+				System.out.println(rs.getInt(1) + " -> " + rs.getString(2));
 			}
+		} catch (SQLException e) {
+			log.error("执行Hive HQL语句时抛出异常:{}", e.getMessage());
+		} finally {
+			closeAll(stat, conn);
 		}
 	}
 
@@ -80,6 +92,18 @@ public class HiveJdbcTest {
 		ResultSet rs = stat.executeQuery();
 		while(rs.next()){
 			System.out.println(rs.getInt(1)+" -> "+rs.getString(2));
+		}
+	}
+
+	private void closeAll(AutoCloseable... c) {
+		for (AutoCloseable src : c) {
+			try {
+				if (src != null) {
+					src.close();
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
 		}
 	}
 }

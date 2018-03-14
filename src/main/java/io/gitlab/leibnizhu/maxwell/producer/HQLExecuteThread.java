@@ -42,11 +42,7 @@ public class HQLExecuteThread implements Runnable{
 				}
 			}
 			if (conn != null) {
-				try {
-					conn.close();
-				} catch (SQLException e) {
-					log.error("关闭Hive连接时抛出异常:{}", e.getMessage());
-				}
+				connPool.back(conn);
 			}
 		}
 	}
